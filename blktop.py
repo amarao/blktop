@@ -69,9 +69,11 @@ def calc_delta(old, new):
     '''
     retval={}
     for key in old.iterkeys():
-        if key == '/sys/block/sda':
-		print "debug", "-"*40+'\n',new[key],'-'*40+'\n', old[key], '='*50+'\n'
         retval[key]=calc_single_delta(new[key],old[key])
+#        if key == '/sys/block/sda':
+#		print "debug", "-"*40+'\n',new[key],'\n'+'-'*40+'\n', old[key], '\n'+'='*50+'\n'
+#		print retval[key]
+	
     return retval
 
 def scan_all(devlist):
@@ -95,12 +97,34 @@ def tick(devlist, delay):
         time.sleep(delay)
         new=scan_all(devlist)
         yield calc_delta (old,new)
+	old=new
+
+def get_top (delta):
+    '''
+       scan through all deltas and sort them
+    '''
+    return delta #FIX
+
+def clear_name(name):
+    '''strip off /dev/ part from device name'''
+    return name[name.rfind('/'):]
+
+def prepare_line(name,item):
+    '''
+       return string for printing for 'item'
+    '''
+    fix=lambda l: repr(l)[-8:].rjust(9, ' ')
+    return fix(clear_name(name))+" ".join(map(fix,item.values()))
 
 def view(delta):
     '''
         Visualisation part: print (un)fancy list
     '''
-    #print delta['/sys/block/sda']
+    print "\x1bc"
+    for a in get_top(delta).iterkeys():
+#        print a, delta[a]['write_sectors']
+        if( filter( lambda x: x>0, delta[a].values() ) ):
+             print prepare_line(a,delta[a])
     return None
 
 def main():
@@ -110,7 +134,7 @@ def main():
     We making 1s tick so we can use delta as ds/dt
     '''
     config=None
-    for a in tick(devlist(config),5):
+    for a in tick(devlist(config),1):
 	view (a)
 
 if __name__ == '__main__':
