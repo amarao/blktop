@@ -113,7 +113,7 @@ def prepare_line(name,item):
     '''
        return string for printing for 'item'
     '''
-    fix=lambda l: repr(l)[-8:].rjust(9, ' ')
+    fix=lambda l: repr(l)[0:12].rjust(12, ' ')
     return fix(clear_name(name))+" ".join(map(fix,item.values()))
 
 def view(delta):
@@ -121,6 +121,10 @@ def view(delta):
         Visualisation part: print (un)fancy list
     '''
     print "\x1bc"
+    fix=lambda l: str(l)[0:12].rjust(12, ' ')
+    print " ".join ([fix(a) for a in ["dev name"]+delta.values()[0].keys()])
+        
+	
     for a in get_top(delta).iterkeys():
 #        print a, delta[a]['write_sectors']
         if( filter( lambda x: x>0, delta[a].values() ) ):
