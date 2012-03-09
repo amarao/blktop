@@ -57,10 +57,14 @@ def calc_single_delta(new,old):
     return 'delta' values between old and new
     format is same as get_stat, but contains delta, not absolute values
     (N.B. delta is absolute and does not divided for dt)
+    in certain cases we return not delta, but actual value (f.e. in_flight)
     '''
     retval={}
-    for key in old.iterkeys():
+    #real deltas
+    for key in ('read_ios', 'read_merges', 'read_sectors', 'read_ticks', 'write_ios', 'write_merges', 'write_sectors', 'write_sectors', 'write_ticks', 'io_ticks', 'time_in_queue'):
         retval[key]=new[key]-old[key]
+    #copy as is
+    retval['in_flight']=new['in_flight']
     return retval
 
 def calc_delta(old, new):
