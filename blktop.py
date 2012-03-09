@@ -66,7 +66,7 @@ def calc_single_delta(new,old):
     #copy as is
     retval['in_flight']=new['in_flight']
     try:
-        retval['time_in_queue']=(new['time_in_queue']-old['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
+        retval['time_in_queue']=float (new['time_in_queue']-old['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
     except ZeroDivisionError:
         retval['time_in_queue']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
     return retval
