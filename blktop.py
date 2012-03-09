@@ -61,10 +61,14 @@ def calc_single_delta(new,old):
     '''
     retval={}
     #real deltas
-    for key in ('read_ios', 'read_merges', 'read_sectors', 'read_ticks', 'write_ios', 'write_merges', 'write_sectors', 'write_sectors', 'write_ticks', 'io_ticks', 'time_in_queue'):
+    for key in ('read_ios', 'read_merges', 'read_sectors', 'read_ticks', 'write_ios', 'write_merges', 'write_sectors', 'write_sectors', 'write_ticks', 'io_ticks'):
         retval[key]=new[key]-old[key]
     #copy as is
     retval['in_flight']=new['in_flight']
+    try:
+        retval['time_in_queue']=(new['time_in_queue']-old['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
+    except ZeroDivisionError:
+        retval['time_in_queue']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
     return retval
 
 def calc_delta(old, new):
@@ -120,6 +124,15 @@ def prepare_line(name,item):
     fix=lambda l: repr(l)[0:12].rjust(12, ' ')
     return fix(clear_name(name))+" ".join(map(fix,item.values()))
 
+
+def is_show(dev,item):
+    '''
+        return True if print device data, return false if not
+        will be full featured, right now it or filter empty, or show all
+    '''
+#    return bool ( filter( lambda x: x>0, item.values() ) )
+    return True
+
 def view(delta):
     '''
         Visualisation part: print (un)fancy list
@@ -131,7 +144,7 @@ def view(delta):
 	
     for a in get_top(delta).iterkeys():
 #        print a, delta[a]['write_sectors']
-        if( filter( lambda x: x>0, delta[a].values() ) ):
+        if is_show (a, delta[a] ):
              print prepare_line(a,delta[a])
     return None
 
