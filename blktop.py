@@ -7,9 +7,15 @@ def devlist(config):
     scan devices in /sys/block according to config file
     if config is none, every device is scanned
 
-    return list of found devices or emty list
+    return dictionary of found devices or empty dict
+    we add only keys 'sector size' and 'id'
     '''
-    return map(lambda x: '/sys/block/' + x, os.listdir('/sys/block')) #TODO Config goes here...
+    devs={}
+    for dev in  map(lambda x: '/sys/block/' + x, os.listdir('/sys/block')):
+        devs[dev]={}
+        devs[dev]['sector_size']=512 #(just for test) FIXME
+        devs[dev]['id']='FIXME' #FIXME
+    return devs
 
 def get_stat(dev):
     '''
@@ -40,7 +46,7 @@ def get_stat(dev):
     retval["read_ios"]      = int(split[0])
     retval["read_merges"]   = int(split[1])
     retval["read_sectors"]  = int(split[2])  #TODO add getdevsize for right IO in MB/s calculation
-    retval["read_ticks"]    = int(split[3])  #TODO get tick length somewhere
+    retval["read_ticks"]    = int(split[3])
     retval["write_ios"]     = int(split[4])
     retval["write_merges"]  = int(split[5])
     retval["write_sectors"] = int(split[6])
@@ -48,7 +54,6 @@ def get_stat(dev):
     retval["in_flight"]     = int(split[8])
     retval["io_ticks"]      = int(split[9])
     retval["time_in_queue"] = int(split[10])
-
 
     return retval
 
@@ -92,7 +97,7 @@ def scan_all(devlist):
           values=dict of stat
     '''
     retval={}
-    for dev in devlist:
+    for dev in devlist.keys():
         retval[dev]=get_stat(dev)
     return retval
 
