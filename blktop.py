@@ -137,9 +137,27 @@ def get_top (delta):
     return delta #FIX
 
 
+def make_k (n):
+    '''
+        return human-like view
+    '''
+    if n < 10000:
+        return str(n)
+    if  n < 100000000:
+        return str(n/1000)+'k'
+    return str(n/1000000)+'M'
 
 def fix (l):
-    return  str(l)[0:12].rjust(12, ' ')
+    '''
+       create pagination and convert numeric values to ISO-based format (f.e. 1k 8M and so on)
+    '''
+    if type(l) == type(""):
+	value=l[0:8]
+    elif type(l) == type(0.0):
+        value = make_k ( round(l,2)) 
+    else:
+	value = make_k(l)
+    return  value.rjust(8, ' ')
 
 def prepare_header():
     '''
