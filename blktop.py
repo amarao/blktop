@@ -2,6 +2,13 @@
 import os
 import time
 
+
+
+def get_sector_size(dev):
+    f=file("/sys/block/"+dev+"/queue/physical_block_size", 'r')
+    return int(f.readline())
+
+
 def devlist(config):
     '''
     scan devices in /sys/block according to config file
@@ -11,9 +18,9 @@ def devlist(config):
     we add only keys 'sector size' and 'id'
     '''
     devs={}
-    for dev in  map(lambda x: '/sys/block/' + x, os.listdir('/sys/block')):
+    for dev in  os.listdir('/sys/block'):
         devs[dev]={}
-        devs[dev]['sector_size']=512 #(just for test) FIXME
+        devs[dev]['sector_size']=get_sector_size(dev) #(just for test) FIXME
         devs[dev]['id']='FIXME' #FIXME
     return devs
 
@@ -41,7 +48,7 @@ def get_stat(dev):
     return value is just dictionary of those values (11 items)
     '''
     retval={}
-    f=open(dev+'/stat','r')
+    f=open('/sys/block/'+dev+'/stat','r')
     split=f.readline().split()
     retval["read_ios"]      = int(split[0])
     retval["read_merges"]   = int(split[1])
@@ -57,7 +64,7 @@ def get_stat(dev):
 
     return retval
 
-def calc_single_delta(new,old):
+def calc_single_delta(new,old, sector_size):
     '''
     return 'delta' values between old and new
     format is same as get_stat, but contains delta, not absolute values
@@ -70,19 +77,21 @@ def calc_single_delta(new,old):
         retval[key]=new[key]-old[key]
     #copy as is
     retval['in_flight']=new['in_flight']
+    retval['read_sectors']*=sector_size
+    retval['write_sectors']*=sector_size
     try:
         retval['time_in_queue']=float (new['time_in_queue']-old['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
     except ZeroDivisionError:
         retval['time_in_queue']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
     return retval
 
-def calc_delta(old, new):
+def calc_delta(old, new, devlist):
     '''
        return dict of deltas for two dict of dicts
     '''
     retval={}
     for key in old.iterkeys():
-        retval[key]=calc_single_delta(new[key],old[key])
+        retval[key]=calc_single_delta(new[key],old[key],devlist[key]["sector_size"])
 #        if key == '/sys/block/sda':
 #		print "debug", "-"*40+'\n',new[key],'\n'+'-'*40+'\n', old[key], '\n'+'='*50+'\n'
 #		print retval[key]
@@ -109,7 +118,7 @@ def tick(devlist, delay):
     while 1:
         time.sleep(delay)
         new=scan_all(devlist)
-        yield calc_delta (old,new)
+        yield calc_delta (old,new,devlist)
 	old=new
 
 def get_top (delta):
@@ -118,16 +127,12 @@ def get_top (delta):
     '''
     return delta #FIX
 
-def clear_name(name):
-    '''strip off /dev/ part from device name'''
-    return name[name.rfind('/'):]
-
 def prepare_line(name,item):
     '''
        return string for printing for 'item'
     '''
-    fix=lambda l: repr(l)[0:12].rjust(12, ' ')
-    return fix(clear_name(name))+" ".join(map(fix,item.values()))
+    fix=lambda l: str(l)[0:12].rjust(12, ' ')
+    return fix(name)+" ".join(map(fix,item.values()))
 
 
 def is_show(dev,item):
