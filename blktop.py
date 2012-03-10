@@ -73,16 +73,16 @@ def calc_single_delta(new,old, sector_size):
     '''
     retval={}
     #real deltas
-    for key in ('read_ios', 'read_merges', 'read_sectors', 'read_ticks', 'write_ios', 'write_merges', 'write_sectors', 'write_sectors', 'write_ticks', 'io_ticks'):
+    for key in ('read_ios', 'read_merges', 'read_sectors', 'read_ticks', 'write_ios', 'write_merges', 'write_sectors', 'write_sectors', 'write_ticks', 'io_ticks', 'time_in_queue'):
         retval[key]=new[key]-old[key]
     #copy as is
     retval['in_flight']=new['in_flight']
     retval['read_sectors']*=sector_size
     retval['write_sectors']*=sector_size
     try:
-        retval['time_in_queue']=float (new['time_in_queue']-old['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
+        retval['latency']=float(retval['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
     except ZeroDivisionError:
-        retval['time_in_queue']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
+        retval['latency']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
     return retval
 
 def calc_delta(old, new, devlist):
