@@ -8,22 +8,6 @@ def get_sector_size(dev):
     f=file("/sys/block/"+dev+"/queue/physical_block_size", 'r')
     return int(f.readline())
 
-
-def devlist(config):
-    '''
-    scan devices in /sys/block according to config file
-    if config is none, every device is scanned
-
-    return dictionary of found devices or empty dict
-    we add only keys 'sector size' and 'id'
-    '''
-    devs={}
-    for dev in  os.listdir('/sys/block'):
-        devs[dev]={}
-        devs[dev]['sector_size']=get_sector_size(dev) #(just for test) FIXME
-        devs[dev]['id']='FIXME' #FIXME
-    return devs
-
 def get_stat(dev):
     '''
     return new stat values (absolute numbers) for specified device
@@ -64,6 +48,34 @@ def get_stat(dev):
 
     return retval
 
+
+def is_any_io(item):
+    '''
+        return True if print device data, return false if not
+        will be full featured, right now it or filter empty, or show all
+    '''
+    return bool ( filter( lambda x: x>0, item.values() ) )
+
+
+def devlist(config):
+    '''
+    scan devices in /sys/block according to config file
+    if config is none, every device is scanned
+
+    return dictionary of found devices or empty dict
+    we add only keys 'sector size' and 'id'
+    '''
+    devs={}
+    for dev in  os.listdir('/sys/block'):
+        #skip empty devices never has an IO
+	if is_any_io(get_stat(dev)):
+            devs[dev]={}
+            devs[dev]['sector_size']=get_sector_size(dev) #(just for test) FIXME
+            devs[dev]['id']='FIXME' #FIXME
+    return devs
+
+
+
 def calc_single_delta(new,old, sector_size):
     '''
     return 'delta' values between old and new
@@ -92,9 +104,6 @@ def calc_delta(old, new, devlist):
     retval={}
     for key in old.iterkeys():
         retval[key]=calc_single_delta(new[key],old[key],devlist[key]["sector_size"])
-#        if key == '/sys/block/sda':
-#		print "debug", "-"*40+'\n',new[key],'\n'+'-'*40+'\n', old[key], '\n'+'='*50+'\n'
-#		print retval[key]
 	
     return retval
 
@@ -112,7 +121,7 @@ def scan_all(devlist):
 
 def tick(devlist, delay):
     '''
-        yield new values
+        yield new delta for all devices in devlist
     '''
     old=scan_all(devlist)
     while 1:
@@ -127,35 +136,37 @@ def get_top (delta):
     '''
     return delta #FIX
 
+
+
+def fix (l):
+    return  str(l)[0:12].rjust(12, ' ')
+
+def prepare_header():
+    '''
+       create header line (reset screen and inversion).
+       see man console_codes for detail
+    '''
+    fields=('Dev name', 'r IOPS', 'w IOPS',  'w bytes', 'r bytes', 'latency', 'queue')
+    f=" ".join([fix(a) for a in fields])
+    return '\x1bc\x1b[7m'+f+'\x1b[0m'
+
 def prepare_line(name,item):
     '''
        return string for printing for 'item'
     '''
-    fix=lambda l: str(l)[0:12].rjust(12, ' ')
-    return fix(name)+" ".join(map(fix,item.values()))
+    fields=('read_ios', 'write_ios', 'read_sectors', 'write_sectors', 'latency', 'in_flight')
+    f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
+    return f
 
-
-def is_show(dev,item):
-    '''
-        return True if print device data, return false if not
-        will be full featured, right now it or filter empty, or show all
-    '''
-#    return bool ( filter( lambda x: x>0, item.values() ) )
-    return True
 
 def view(delta):
     '''
         Visualisation part: print (un)fancy list
     '''
-    print "\x1bc"
-    fix=lambda l: str(l)[0:12].rjust(12, ' ')
-    print " ".join ([fix(a) for a in ["dev name"]+delta.values()[0].keys()])
-        
+    print prepare_header()
 	
     for a in get_top(delta).iterkeys():
-#        print a, delta[a]['write_sectors']
-        if is_show (a, delta[a] ):
-             print prepare_line(a,delta[a])
+        print prepare_line(a,delta[a])
     return None
 
 def main():
