@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os
 import time
-
+import copy
 
 
 def get_sector_size(dev):
@@ -124,10 +124,21 @@ def tick(devlist, delay):
         yield new delta for all devices in devlist
     '''
     old=scan_all(devlist)
+    avg0=copy.deepcopy(old)
+    avg_tick=10
     while 1:
         time.sleep(delay)
         new=scan_all(devlist)
-        yield calc_delta (old,new,devlist)
+	avg_tick+=1
+        if avg_tick>10:
+            avg_tick=0
+            avg1=copy.deepcopy(new)
+            avg_delta=calc_delta(avg0,avg1,devlist)
+            for d in avg_delta.keys():
+                for i in avg_delta[d].keys():
+                    avg_delta[d][i]/=10
+            avg0=avg1
+        yield (calc_delta (old,new,devlist), avg_delta)
 	old=new
 
 def get_top (delta):
@@ -164,27 +175,28 @@ def prepare_header():
        create header line (reset screen and inversion).
        see man console_codes for detail
     '''
-    fields=('Dev name', 'r IOPS', 'w IOPS',  'w bytes', 'r bytes', 'latency', 'queue')
-    f=" ".join([fix(a) for a in fields])
+    fields=('Dev name', 'r IOPS', 'w IOPS',  'w bytes', 'r bytes', 'latency', 'queue', 'io_ticks')
+    f="|".join([fix(a) for a in fields])
     return '\x1bc\x1b[7m'+f+'\x1b[0m'
 
 def prepare_line(name,item):
     '''
        return string for printing for 'item'
     '''
-    fields=('read_ios', 'write_ios', 'read_sectors', 'write_sectors', 'latency', 'in_flight')
+    fields=('read_ios', 'write_ios', 'read_sectors', 'write_sectors', 'latency', 'in_flight', 'io_ticks')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
     return f
 
 
-def view(delta):
+def view(cur, avg):
     '''
         Visualisation part: print (un)fancy list
     '''
     print prepare_header()
 	
-    for a in get_top(delta).iterkeys():
-        print prepare_line(a,delta[a])
+    for a in get_top(cur).iterkeys():
+        print prepare_line(a,cur[a])
+	print prepare_line("avg "+a,avg[a])
     return None
 
 def main():
@@ -194,8 +206,8 @@ def main():
     We making 1s tick so we can use delta as ds/dt
     '''
     config=None
-    for a in tick(devlist(config),1):
-	view (a)
+    for (cur,avg) in tick(devlist(config),1):
+	view (cur,avg)
 
 if __name__ == '__main__':
     main ()
