@@ -5,8 +5,13 @@ import copy
 
 
 def get_sector_size(dev):
-    f=file("/sys/block/"+dev+"/queue/physical_block_size", 'r')
-    return int(f.readline())
+    try:
+        f=file("/sys/block/"+dev+"/queue/physical_block_size", 'r')
+        ss=int(f.readline())
+    except ExceptionObject:
+        #dirty hack for old kernels (like centos)
+        ss=512   
+    return ss
 
 def get_stat(dev):
     '''
