@@ -69,7 +69,7 @@ def devlist(config):
     if config is none, every device is scanned
 
     return dictionary of found devices or empty dict
-    we add only keys 'sector size' and 'id'
+    we add only keys 'sector size', 'id' and flag if device is md (no queue/latency)
     '''
     devs={}
     for dev in  os.listdir('/sys/block'):
@@ -78,6 +78,10 @@ def devlist(config):
             devs[dev]={}
             devs[dev]['sector_size']=get_sector_size(dev) #(just for test) FIXME
             devs[dev]['id']='FIXME' #FIXME
+            if 'md' in dev:
+                devs[dev]['is_md']=True
+            else:
+                devs[dev]['is_md']=False
     return devs
 
 
@@ -118,7 +122,6 @@ def calc_delta(old, new, devlist):
     retval={}
     for key in old.iterkeys():
         retval[key]=calc_single_delta(new[key],old[key],devlist[key]["sector_size"])
-	
     return retval
 
 def scan_all(devlist):
@@ -184,23 +187,26 @@ def prepare_header():
     l="|".join([fix(a) for a in lower_fields])
     return '\x1bc\x1b[7m'+u+'\x1b[0m\n'+'\x1b[7m'+l+'\x1b[0m'
 
-def prepare_line(name,item):
+def prepare_line(name,item,dev):
     '''
        return string for printing for 'item'
     '''
-    fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
+    if not dev['is_md']:
+        fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
+    else:
+        fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
     return f
 
 
-def view(cur ):
+def view(cur,devlist):
     '''
         Visualisation part: print (un)fancy list
     '''
     print prepare_header()
 	
-    for a in get_top(cur).iterkeys():
-        print prepare_line(a,cur[a])
+    for a in cur.iterkeys():
+        print prepare_line(a,cur[a],devlist[a])
     return None
 
 def main():
@@ -210,8 +216,9 @@ def main():
     We making 1s tick so we can use delta as ds/dt
     '''
     config=None
-    for (cur) in tick(devlist(config),1):
-	view (cur)
+    devs=devlist(config)
+    for (cur) in tick(devs,1):
+	view (cur,devs)
 
 if __name__ == '__main__':
     main ()
