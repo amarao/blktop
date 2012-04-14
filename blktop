@@ -6,7 +6,7 @@ import copy
 
 def get_sector_size(dev):
     try:
-        f=file("/sys/block/"+dev+"/queue/physical_block_size", 'r')
+        f=file("/sys/block/"+dev+"/queue/logical_block_size", 'r')
         ss=int(f.readline())
     except ExceptionObject:
         #dirty hack for old kernels (like centos)
