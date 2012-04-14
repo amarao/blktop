@@ -10,6 +10,7 @@ def get_sector_size(dev):
         ss=int(f.readline())
     except ExceptionObject:
         #dirty hack for old kernels (like centos)
+        print "Unable to get sector size for %s, assuming 512 bytes." % (dev,)
         ss=512   
     return ss
 
@@ -97,6 +98,14 @@ def calc_single_delta(new,old, sector_size):
     retval['read_sectors']*=sector_size
     retval['write_sectors']*=sector_size
     try:
+        retval['avg read block size']=retval['read_sectors']/retval['read_ios']
+    except:
+        retval['avg read block size']=0
+    try:
+        retval['avg write block size']=retval['write_sectors']/retval['write_ios']
+    except:
+        retval['avg write block size']=0
+    try:
         retval['latency']=float(retval['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
     except ZeroDivisionError:
         retval['latency']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
@@ -129,21 +138,10 @@ def tick(devlist, delay):
         yield new delta for all devices in devlist
     '''
     old=scan_all(devlist)
-    avg0=copy.deepcopy(old)
-    avg_tick=10
     while 1:
         time.sleep(delay)
         new=scan_all(devlist)
-	avg_tick+=1
-        if avg_tick>10:
-            avg_tick=0
-            avg1=copy.deepcopy(new)
-            avg_delta=calc_delta(avg0,avg1,devlist)
-            for d in avg_delta.keys():
-                for i in avg_delta[d].keys():
-                    avg_delta[d][i]/=10
-            avg0=avg1
-        yield (calc_delta (old,new,devlist), avg_delta)
+        yield (calc_delta (old,new,devlist))
 	old=new
 
 def get_top (delta):
@@ -180,20 +178,22 @@ def prepare_header():
        create header line (reset screen and inversion).
        see man console_codes for detail
     '''
-    fields=('Dev name', 'r IOPS', 'w IOPS',  'w bytes', 'r bytes', 'latency', 'queue', 'io_ticks')
-    f="|".join([fix(a) for a in fields])
-    return '\x1bc\x1b[7m'+f+'\x1b[0m'
+    upper_fields=("|","","READ","|","","WRITE","|")
+    lower_fields=('Dev name', 'IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'io_ticks')
+    u=" "+" ".join([fix(a) for a in upper_fields])
+    l="|".join([fix(a) for a in lower_fields])
+    return '\x1bc\x1b[7m'+u+'\x1b[0m\n'+'\x1b[7m'+l+'\x1b[0m'
 
 def prepare_line(name,item):
     '''
        return string for printing for 'item'
     '''
-    fields=('read_ios', 'write_ios', 'read_sectors', 'write_sectors', 'latency', 'in_flight', 'io_ticks')
+    fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
     return f
 
 
-def view(cur, avg):
+def view(cur ):
     '''
         Visualisation part: print (un)fancy list
     '''
@@ -201,7 +201,6 @@ def view(cur, avg):
 	
     for a in get_top(cur).iterkeys():
         print prepare_line(a,cur[a])
-	print prepare_line("avg "+a,avg[a])
     return None
 
 def main():
@@ -211,8 +210,8 @@ def main():
     We making 1s tick so we can use delta as ds/dt
     '''
     config=None
-    for (cur,avg) in tick(devlist(config),1):
-	view (cur,avg)
+    for (cur) in tick(devlist(config),1):
+	view (cur)
 
 if __name__ == '__main__':
     main ()
