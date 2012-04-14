@@ -1,0 +1,4 @@
+Q: Why all md (linux raid) devices have empty cells for latency and queue?
+A: linux raid does not provice this information because of lack of queue inside raid
+   They will be always '0', which is more disturbing than empty space
+
