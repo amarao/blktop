@@ -182,21 +182,40 @@ def prepare_header():
        see man console_codes for detail
     '''
     upper_fields=("|","","READ","|","","WRITE","|")
-    lower_fields=('Dev name', 'IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'io_ticks')
+    lower_fields=('Dev name', 'IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'IO time (ms)')
     u=" "+" ".join([fix(a) for a in upper_fields])
     l="|".join([fix(a) for a in lower_fields])
     return '\x1bc\x1b[7m'+u+'\x1b[0m\n'+'\x1b[7m'+l+'\x1b[0m'
+
+def get_color(value):
+    '''
+       return color code based on value
+       colors from man console_codes
+       ranges:
+           below 400 - default
+           [400-649] - blue
+           [649-799] - cyan
+           [800-899] - yellow
+           over 900 - red
+    '''
+    color_array=((400,39),(650,34),(800,36),(900,33),(100500,31))
+    for threshold,color in color_array:
+        if value<threshold:
+            return color
 
 def prepare_line(name,item,dev):
     '''
        return string for printing for 'item'
     '''
+    color_esc="\x1b[%im" #see man console_codes
+    default_color=39 #default foreground color
+    color = get_color(item['io_ticks'])
     if not dev['is_md']:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     else:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
-    return f
+    return (color_esc%color) + f + (color_esc%default_color)
 
 
 def view(cur,devlist):
