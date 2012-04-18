@@ -203,6 +203,23 @@ def get_color(value):
         if value<threshold:
             return color
 
+
+def get_bold(name):
+    ''' return boldness status for composite devices
+        right now we support:
+        device mapper (lvm, flashcache)
+        md (raid)
+        drbd
+        (feel free to add)
+    '''
+    signatures = ('md', 'dm', 'drbd')
+    for s in signatures:
+        if s in name:
+            return 1 #console_codes 'bold'
+    return 2 #console_codes 'half bright'
+
+
+
 def prepare_line(name,item,dev):
     '''
        return string for printing for 'item'
@@ -210,12 +227,14 @@ def prepare_line(name,item,dev):
     color_esc="\x1b[%im" #see man console_codes
     default_color=39 #default foreground color
     color = get_color(item['io_ticks'])
+    bold = get_bold(name)
+    attr=color | bold #bin math here
     if not dev['is_md']:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     else:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
-    return (color_esc%color) + f + (color_esc%default_color)
+    return (color_esc%attr) + f + (color_esc%default_color)
 
 
 def view(cur,devlist):
