@@ -212,8 +212,9 @@ def get_bold(name):
         drbd
         (feel free to add)
     '''
-    skip=('sd') #to skip 'sdm'
     signatures = ('md', 'dm', 'drbd')
+    if 'sd' in name: #prevent 'sdm' marked as 'dm'
+       return 0
     for s in skip:
         if s in name:
             return 0 
