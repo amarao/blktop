@@ -212,11 +212,15 @@ def get_bold(name):
         drbd
         (feel free to add)
     '''
+    skip=('sd') #to skip 'sdm'
     signatures = ('md', 'dm', 'drbd')
+    for s in skip:
+        if s in name:
+            return 0 
     for s in signatures:
         if s in name:
             return 1 #console_codes 'bold'
-    return 2 #console_codes 'half bright'
+    return 0 #console_codes 'normal'
 
 
 
@@ -225,16 +229,16 @@ def prepare_line(name,item,dev):
        return string for printing for 'item'
     '''
     color_esc="\x1b[%im" #see man console_codes
+    color_esc2="\x1b[%i;%im"
     default_color=39 #default foreground color
     color = get_color(item['io_ticks'])
     bold = get_bold(name)
-    attr=color | bold #bin math here
     if not dev['is_md']:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     else:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
     f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
-    return (color_esc%attr) + f + (color_esc%default_color)
+    return (color_esc2%(bold,color)) + f + (color_esc%default_color)
 
 
 def view(cur,devlist):
