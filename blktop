@@ -215,9 +215,6 @@ def get_bold(name):
     signatures = ('md', 'dm', 'drbd')
     if 'sd' in name: #prevent 'sdm' marked as 'dm'
        return 0
-    for s in skip:
-        if s in name:
-            return 0 
     for s in signatures:
         if s in name:
             return 1 #console_codes 'bold'
