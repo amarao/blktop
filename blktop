@@ -2,7 +2,39 @@
 import os
 import time
 import copy
+import re
+from collections import defaultdict
 
+class SlideList(list):
+    def __init__ (self,  length):
+        self.length=length
+
+    def append(self, newvalue):
+        if len(self)>=self.length:
+            list.pop(self,0)
+        list.append(self,newvalue)
+
+    def avg(self):
+        return sum(self)/len(self)
+
+    def median(self):
+        return sorted(self)[len(self)/2]
+
+
+
+def readconfig(path):
+    config=defaultdict(str)
+    try:
+        import ConfigParser
+        cfg=ConfigParser.ConfigParser()
+        cfg.read(path)
+        try:
+             config["ignore"]=cfg.get("blktop","ignore")
+        except:
+             pass
+    except:
+        print "unable to read config, running with defaults"
+    return config
 
 def get_sector_size(dev):
     try:
@@ -63,6 +95,9 @@ def is_any_io(item):
     return bool ( filter( lambda x: x>0, item.values() ) )
 
 
+def is_ignored(name, ignore_list):
+    return False
+
 def devlist(config):
     '''
     scan devices in /sys/block according to config file
@@ -73,8 +108,9 @@ def devlist(config):
     '''
     devs={}
     for dev in  os.listdir('/sys/block'):
-        #skip empty devices never has an IO
-	if is_any_io(get_stat(dev)):
+        if is_ignored(dev,config['ignore']):
+            continue
+	if is_any_io(get_stat(dev)):#skip empty devices never has an IO
             devs[dev]={}
             devs[dev]['sector_size']=get_sector_size(dev) #(just for test) FIXME
             devs[dev]['id']='FIXME' #FIXME
@@ -255,11 +291,10 @@ def main():
     don't use config file (initial proof of usability)
     We making 1s tick so we can use delta as ds/dt
     '''
-    config=None
+    config=readconfig("/etc/blktop.conf")
     devs=devlist(config)
     for (cur) in tick(devs,1):
 	view (cur,devs)
 
 if __name__ == '__main__':
     main ()
-
