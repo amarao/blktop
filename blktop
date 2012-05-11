@@ -99,9 +99,9 @@ def get_alias(realname):
     try:
         candidates=os.listdir('/dev/mapper')
         for i in candidates:
-            probe=os.path.basename( os.path.realpath ( '/dev/mapper' + i ) )
+            probe=os.path.basename( os.path.realpath ( os.path.join('/dev/mapper', i) ) )
             if probe == realname:
-                return probe
+                return os.path.basename(i)
     except:
         pass
     return realname
