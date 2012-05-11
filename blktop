@@ -21,7 +21,6 @@ class SlideList(list):
         return sorted(self)[len(self)/2]
 
 
-
 def readconfig(path):
     config=defaultdict(str)
     try:
@@ -95,6 +94,18 @@ def is_any_io(item):
     return bool ( filter( lambda x: x>0, item.values() ) )
 
 
+def get_alias(realname):
+    '''return name of device mapper devices'''
+    try:
+        candidates=os.listdir('/dev/mapper')
+        for i in candidates:
+            probe=os.path.basename( os.path.realpath ( '/dev/mapper' + i ) )
+            if probe == realname:
+                return probe
+    except:
+        pass
+    return realname
+
 def is_ignored(name, ignore_list):
     return False
 
@@ -118,6 +129,7 @@ def devlist(config):
                 devs[dev]['is_md']=True
             else:
                 devs[dev]['is_md']=False
+            devs[dev]['alias']=get_alias(dev)
     return devs
 
 
@@ -172,7 +184,7 @@ def scan_all(devlist):
         retval[dev]=get_stat(dev)
     return retval
 
-def tick(devlist, delay):
+def tick(devlist, delay,window_size=60):
     '''
         yield new delta for all devices in devlist
     '''
@@ -270,8 +282,8 @@ def prepare_line(name,item,dev):
     if not dev['is_md']:
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     else:
-        fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
-    f=" ".join(map(fix,[name]+[ item[i] for i in fields]))
+        fields=( 'read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
+    f=" ".join(map(fix, [dev['alias']]+[item[i] for i in fields]))
     return (color_esc2%(bold,color)) + f + (color_esc%default_color)
 
 
