@@ -158,7 +158,8 @@ def calc_single_delta(new,old, sector_size):
     except:
         retval['avg write block size']=0
     try:
-        retval['latency']=float(retval['read_ticks']+retval['write_ticks']+retval['time_in_queue'])/(retval['read_ios']+retval['write_ios'])  #avg=(new_time-old_time)/IOPS
+        retval['latency']= float(retval['read_ticks']+retval['write_ticks'])/(retval['read_ios']+retval['write_ios']) + \
+                           float(retval['time_in_queue'])/retval['in_flight']  #avg=(new_time-old_time)/IOPS
     except ZeroDivisionError:
         retval['latency']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
     return retval
