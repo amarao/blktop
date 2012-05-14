@@ -132,7 +132,10 @@ def devlist(config):
             devs[dev]['alias']=get_alias(dev)
     return devs
 
-
+def safe_div (a,b):
+    if not b:
+       return 0
+    return a/b
 
 def calc_single_delta(new,old, sector_size):
     '''
@@ -157,11 +160,7 @@ def calc_single_delta(new,old, sector_size):
         retval['avg write block size']=retval['write_sectors']/retval['write_ios']
     except:
         retval['avg write block size']=0
-    try:
-        retval['latency']= float(retval['read_ticks']+retval['write_ticks'])/(retval['read_ios']+retval['write_ios']) + \
-                           float(retval['time_in_queue'])/retval['in_flight']  #avg=(new_time-old_time)/IOPS
-    except ZeroDivisionError:
-        retval['latency']=0 #By authority decision zero devided to zero is equal to zero. dixi. 
+    retval['latency']= safe_div(float(retval['read_ticks']+retval['write_ticks']+retval['time_in_queue']),retval['read_ios']+retval['write_ios']) 
     return retval
 
 def calc_delta(old, new, devlist):
