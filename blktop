@@ -5,6 +5,11 @@ import copy
 import re
 from collections import defaultdict
 
+
+#static variables goes here
+max_name_size = 8 #maximal found alias lenght for device name
+
+
 class SlideList(list):
     def __init__ (self,  length):
         self.length=length
@@ -224,15 +229,18 @@ def fix (l):
 	value = make_k(l)
     return  value.rjust(8, ' ')
 
-def prepare_header():
+
+def prepare_header(devlist):
     '''
        create header line (reset screen and inversion).
        see man console_codes for detail
+       return touple of text line and size of the fist column
+       size calculated as maximal device alias name (but no more than 32 chars)
     '''
-    upper_fields=("|","","READ","|","","WRITE","|")
-    lower_fields=('Dev name', 'IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'IO time (ms)')
-    u=" "+" ".join([fix(a) for a in upper_fields])
-    l="|".join([fix(a) for a in lower_fields])
+    upper_fields=("READ","|","","WRITE","|")
+    lower_fields=('IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'IO time (ms)')
+    u=" "*max_name_size+'| '+" ".join([fix(a) for a in upper_fields])
+    l="|".join(["Dev name"]+[fix(a) for a in lower_fields])
     return '\x1bc\x1b[7m'+u+'\x1b[0m\n'+'\x1b[7m'+l+'\x1b[0m'
 
 def get_color(value):
@@ -255,7 +263,7 @@ def get_color(value):
 def get_bold(name):
     ''' return boldness status for composite devices
         right now we support:
-        device mapper (lvm, flashcache)
+        device mapper (lvm, flashcache, multipath)
         md (raid)
         drbd
         (feel free to add)
@@ -283,7 +291,7 @@ def prepare_line(name,item,dev):
         fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
     else:
         fields=( 'read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
-    f=" ".join(map(fix, [dev['alias']]+[item[i] for i in fields]))
+    f=dev['alias'].rjust(max_name_size, ' ') + " ".join(map(fix,[item[i] for i in fields]))
     return (color_esc2%(bold,color)) + f + (color_esc%default_color)
 
 
@@ -291,7 +299,7 @@ def view(cur,devlist):
     '''
         Visualisation part: print (un)fancy list
     '''
-    print prepare_header()
+    print prepare_header(devlist)
 	
     for a in cur.iterkeys():
         print prepare_line(a,cur[a],devlist[a])
@@ -305,6 +313,7 @@ def main():
     '''
     config=readconfig("/etc/blktop.conf")
     devs=devlist(config)
+    max_name_size = min(32,max(8,max([len(devs[i]['alias']) for i in devs.iterkeys()]),8)) #goes static, name field is in [8,32] range
     for (cur) in tick(devs,1):
 	view (cur,devs)
 
