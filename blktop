@@ -240,7 +240,7 @@ def prepare_header(devlist):
     upper_fields=("READ","|","","WRITE","|")
     lower_fields=('IOPS', 'bytes', 'req.size', 'IOPS',  'bytes', 'req.size', 'latency', 'queue', 'IO time (ms)')
     u=" "*max_name_size+'| '+" ".join([fix(a) for a in upper_fields])
-    l="|".join(["Dev name"]+[fix(a) for a in lower_fields])
+    l="|".join(["Dev name".rjust(max_name_size,' ')]+[fix(a) for a in lower_fields])
     return '\x1bc\x1b[7m'+u+'\x1b[0m\n'+'\x1b[7m'+l+'\x1b[0m'
 
 def get_color(value):
@@ -313,6 +313,7 @@ def main():
     '''
     config=readconfig("/etc/blktop.conf")
     devs=devlist(config)
+    global max_name_size
     max_name_size = min(32,max(8,max([len(devs[i]['alias']) for i in devs.iterkeys()]),8)) #goes static, name field is in [8,32] range
     for (cur) in tick(devs,1):
 	view (cur,devs)
