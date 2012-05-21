@@ -7,7 +7,7 @@ from collections import defaultdict
 
 
 #static variables goes here
-max_name_size = 8 #maximal found alias lenght for device name
+max_name_size = 8 #maximal found alias lenght for device name, defaulting to 8, can change later
 
 
 class SlideList(list):
@@ -287,12 +287,26 @@ def prepare_line(name,item,dev):
     default_color=39 #default foreground color
     color = get_color(item['io_ticks'])
     bold = get_bold(name)
+    f=[(dev['alias'].rjust(max_name_size, ' '))]
     if not dev['is_md']:
-        fields=('read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size', 'latency', 'in_flight', 'io_ticks')
+        f.append(fix(item['read_ios']))
+        f.append(fix(item['read_sectors']))
+        f.append(fix(item['avg read block size']))
+        f.append(fix(item['write_ios']))
+        f.append(fix(item['write_sectors']))
+        f.append(fix(item['avg write block size']))
+        f.append(fix(item['latency']))
+        f.append(fix(item['in_flight']))
+        f.append(fix(item['io_ticks']))
     else:
-        fields=( 'read_ios','read_sectors', 'avg read block size', 'write_ios',  'write_sectors', 'avg write block size')
-    f=dev['alias'].rjust(max_name_size, ' ') + " ".join(map(fix,[item[i] for i in fields]))
-    return (color_esc2%(bold,color)) + f + (color_esc%default_color)
+        f.append(fix(item['read_ios']))
+        f.append(fix(item['read_sectors']))
+        f.append(fix(item['avg read block size']))
+        f.append(fix(item['write_ios']))
+        f.append(fix(item['write_sectors']))
+        f.append(fix(item['avg write block size']))
+    out=' '.join(f)
+    return (color_esc2%(bold,color)) + out + (color_esc%default_color)
 
 
 def view(cur,devlist):
