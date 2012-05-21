@@ -207,24 +207,24 @@ def get_top (delta):
     return delta #FIX
 
 
-def make_k (n):
+def make_k (n,scale=1000, force_high=False):
     '''
         return human-like view
     '''
-    if n < 10000:
+    if n < 10*scale and not force_high:
         return str(n)
-    if  n < 100000000:
-        return str(n/1000)+'k'
-    return str(n/1000000)+'M'
+    if  n < 100*scale*scale:
+        return str(n/scale)+'k'
+    return str(n/scale/scale)+'M'
 
-def fix (l):
+def fix (l,scale=1000, force_high=False):
     '''
        create pagination and convert numeric values to ISO-based format (f.e. 1k 8M and so on)
     '''
     if type(l) == type(""):
 	value=l[0:8]
     elif type(l) == type(0.0):
-        value = make_k ( round(l,2)) 
+        value = make_k ( round(l,2),scale,force_high) 
     else:
 	value = make_k(l)
     return  value.rjust(8, ' ')
@@ -290,21 +290,21 @@ def prepare_line(name,item,dev):
     f=[(dev['alias'].rjust(max_name_size, ' '))]
     if not dev['is_md']:
         f.append(fix(item['read_ios']))
-        f.append(fix(item['read_sectors']))
-        f.append(fix(item['avg read block size']))
+        f.append(fix(item['read_sectors'],1024,force_high=True))
+        f.append(fix(item['avg read block size'],1024))
         f.append(fix(item['write_ios']))
-        f.append(fix(item['write_sectors']))
-        f.append(fix(item['avg write block size']))
+        f.append(fix(item['write_sectors'],1024,force_high=True))
+        f.append(fix(item['avg write block size'],1024))
         f.append(fix(item['latency']))
         f.append(fix(item['in_flight']))
         f.append(fix(item['io_ticks']))
     else:
         f.append(fix(item['read_ios']))
-        f.append(fix(item['read_sectors']))
-        f.append(fix(item['avg read block size']))
+        f.append(fix(item['read_sectors'],1024,force_high=True))
+        f.append(fix(item['avg read block size'],1024))
         f.append(fix(item['write_ios']))
-        f.append(fix(item['write_sectors']))
-        f.append(fix(item['avg write block size']))
+        f.append(fix(item['write_sectors'],1024,force_high=True))
+        f.append(fix(item['avg write block size'],1024))
     out=' '.join(f)
     return (color_esc2%(bold,color)) + out + (color_esc%default_color)
 
