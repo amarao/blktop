@@ -1,0 +1,23 @@
+Idea for gen2 blktop is somehow split messy code in gen1 to few separate entity:
+
+* Engine for math:
+	- calculate averages for last second, min/max/avg for more extended interval
+	- calculate derivatives values (like latency and so on)
+	- calculate group statistic
+* Data gathering
+	- device enumeration
+	- mostly from /sys/block/*/stat
+	- updating device list in realtime
+	- filter out some devices based on config
+	- data relationship
+	- grouping based on real relationship or supplied from configuration file
+* Visualization
+	- Adopting to screen of different sizes
+	- highlighting unusual
+	- sorting data based on supplied fields considering groups
+* Time and keyboard control
+	- periodic updates with fixed ratio
+	- accepts input from user
+	- check for screen size changes
+	- ask for new device discovery
+
