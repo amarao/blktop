@@ -1,0 +1,59 @@
+#!/usr/bin/python
+
+
+class Metrics:
+    def __init__(self):
+        self.metricA=1
+        self.metricB=1
+
+    def values(self):
+        return [i[0] for i in self.__dict__.items() if 'metric' in i[0]] #stab, will be sane latter
+
+class History:
+    def __init__(self,depth):
+        self.depth=depth
+        self.history=[]
+        self.basetype=None
+
+    def push(self,new_value):
+        if self.basetype:
+            if not type (new_value) is self.basetype:
+                raise Exception("Different types in single history are not allowed")
+        else:
+            self.basetype=type(new_value)
+        if len(self.history)>=self.depth:
+            self.history.__delitem__(0)
+        self.history.append(new_value)
+
+class Dev:
+    def __init__(self):
+        self.path      = ""
+        self.name      = ""
+        self.alias     = ""
+        self.size      = 0
+        self.sectsize  = 512 #if we can't get size later, we'll assume it is 42*12+8
+        self.current   = Metrics() #no metrics
+        self.history   = History(depth=60) #empty history
+        self.visible   = False
+        self.viewtype  = "current" #see __str__
+
+    def scan(self, path=""):
+        """
+            add new device or update data for old
+        """
+        if path != self.path or not self.path:
+            __add_new(self,path)
+        self.current=__get_stats(self)
+        self.history.push(self.current)
+
+    def __str__(self,scale=10):
+        stats={
+            "current": self.current,
+            "average": self.history.average(scale),
+            "median": self.history.median(scale)
+        }[self.viewtype]()
+        return self.__format(stats)
+
+    def __format(self,stats):
+        return " ".join([str(x) for x in stats.values()]) #stab, will be sane latter
+
